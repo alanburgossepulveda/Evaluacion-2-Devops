@@ -1,5 +1,5 @@
 # Etapa 1: compilar
-FROM maven:3.9-eclipse-temurin-17 AS build
+FROM maven:3.9-eclipse-temurin-26 AS build
 WORKDIR /app
 COPY pom.xml .
 RUN mvn -B -ntp dependency:go-offline
