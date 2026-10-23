@@ -7,7 +7,7 @@ COPY src ./src
 RUN mvn -B -ntp package -DskipTests
 
 # Etapa 2: ejecutar (imagen liviana)
-FROM eclipse-temurin:17-jre-alpine
+FROM eclipse-temurin:24-jre-alpine
 WORKDIR /app
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/target/*.jar app.jar
