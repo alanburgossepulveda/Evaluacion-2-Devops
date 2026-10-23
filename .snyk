@@ -1,0 +1,7 @@
+version: v1.25.0
+ignore:
+  SNYK-JAVA-ORGGLASSFISHJAXB-20883142:
+    - '*':
+        reason: "Problema de XML External Entity (XXE) Injection, es una vulnerabilidad de alto riesgo que permite a un atacante interferir en como una aplicacion procesa datos XML, lo que hace es agregar una linea DOCTYPE foo para acceder de manera remota, sin embargo, mi aplicacion trabaja con JSON no con XML por lo que se acepta temporalmente el riesgo."
+        expires: 2026-12-31T00:00:00.000Z
+patch: {}
