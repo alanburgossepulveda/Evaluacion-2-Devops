@@ -93,7 +93,7 @@ jobs:
             type=sha,format=long,prefix=
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
       - name: Construir (y publicar si es push)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: ${{ github.event_name == 'push' }}
