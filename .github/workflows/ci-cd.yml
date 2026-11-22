@@ -16,6 +16,8 @@ jobs:
   test:
     name: Pruebas y cobertura
     runs-on: ubuntu-latest
+    outputs:
+      coverage: ${{ steps.cov.outputs.coverage }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -25,6 +27,12 @@ jobs:
           cache: maven
       - name: Pruebas unitarias y verificación de cobertura (JaCoCo)
         run: mvn -B -ntp verify
+      - name: Calcular cobertura de líneas
+        id: cov
+        run: |
+          COV=$(awk -F, 'NR>1 {m+=$8; c+=$9} END {if (m+c>0) printf "%.1f", c*100/(m+c); else print 0}' target/site/jacoco/jacoco.csv)
+          echo "coverage=${COV}" >> "$GITHUB_OUTPUT"
+          echo "Cobertura de líneas: ${COV}%"
       - name: Guardar reporte de cobertura
         if: always()
         uses: actions/upload-artifact@v4
@@ -161,16 +169,20 @@ jobs:
       - name: Limpiar entorno
         if: always()
         run: docker compose down -v
+
   # ---------------------------------------------------------------
   # 5) Despliegue automático en Kubernetes (Amazon EKS)
   # ---------------------------------------------------------------
   deploy-eks:
     name: Despliegue en EKS
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, test]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: eks
     steps:
+      - name: Marcar inicio del despliegue
+        run: echo "T0=$(date +%s)" >> "$GITHUB_ENV"
+
       - name: Descargar el código
         uses: actions/checkout@v4
 
@@ -194,8 +206,32 @@ jobs:
           kubectl rollout status deployment/order-manager -n order-manager --timeout=300s
           kubectl apply -f k8s/monitoring/prometheus.yaml
           kubectl apply -f k8s/monitoring/grafana.yaml
+          kubectl apply -f k8s/monitoring/pushgateway.yaml
           kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
           kubectl rollout status deployment/grafana -n monitoring --timeout=180s
+
+      - name: Publicar métricas del pipeline
+        if: always()
+        env:
+          COVERAGE: ${{ needs.test.outputs.coverage }}
+          DEPLOY_STATUS: ${{ job.status }}
+        run: |
+          DURATION=$(( $(date +%s) - T0 ))
+          OK=0
+          if [ "$DEPLOY_STATUS" = "success" ]; then OK=1; fi
+          kubectl rollout status deployment/pushgateway -n monitoring --timeout=120s
+          kubectl port-forward -n monitoring svc/pushgateway 9091:9091 >/dev/null 2>&1 &
+          sleep 8
+          cat <<EOF | curl -fsS --data-binary @- http://localhost:9091/metrics/job/cicd/instance/eks
+          # TYPE ci_test_coverage_percent gauge
+          ci_test_coverage_percent ${COVERAGE}
+          # TYPE ci_deploy_duration_seconds gauge
+          ci_deploy_duration_seconds ${DURATION}
+          # TYPE ci_deploy_success gauge
+          ci_deploy_success ${OK}
+          # TYPE ci_deploy_timestamp_seconds gauge
+          ci_deploy_timestamp_seconds $(date +%s)
+          EOF
 
       - name: Resumen del despliegue
         if: always()
