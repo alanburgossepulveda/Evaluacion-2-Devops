@@ -103,13 +103,40 @@ jobs:
           ignore-unfixed: true
           vuln-type: os,library
           severity: CRITICAL
-
+      # ---------------------------------------------------------------
+  # Calidad de código: SonarCloud con quality gate (bloquea si falla)
+  # ---------------------------------------------------------------
+  sonar:
+    name: Calidad de código (SonarCloud)
+    needs: test
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - name: Análisis con SonarCloud y quality gate
+        if: env.SONAR_TOKEN != ''
+        run: >
+          mvn -B -ntp verify
+          org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
+          -Dsonar.host.url=https://sonarcloud.io
+          -Dsonar.organization=alanburgossepulveda
+          -Dsonar.projectKey=alanburgossepulveda_Evaluacion-2-Devops
+          -Dsonar.qualitygate.wait=true
+ 
   # ---------------------------------------------------------------
   # 4) Construir la imagen Docker (se publica solo en push a main)
   # ---------------------------------------------------------------
   build:
     name: Imagen Docker
-    needs: [security, compliance, image-scan]
+    needs: [security, compliance, image-scan, sonar]
     runs-on: ubuntu-latest
     permissions:
       contents: read
