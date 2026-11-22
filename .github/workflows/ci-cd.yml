@@ -161,7 +161,10 @@ jobs:
       - name: Limpiar entorno
         if: always()
         run: docker compose down -v
-deploy-eks:
+  # ---------------------------------------------------------------
+  # 5) Despliegue automático en Kubernetes (Amazon EKS)
+  # ---------------------------------------------------------------
+  deploy-eks:
     name: Despliegue en EKS
     runs-on: ubuntu-latest
     needs: build
