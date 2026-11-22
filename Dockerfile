@@ -11,7 +11,6 @@ FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 RUN addgroup -S app && adduser -S app -G app
 COPY --from=build /app/target/*.jar app.jar
-USER app
 EXPOSE 8098
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
   CMD wget -qO- http://localhost:8098/actuator/health || exit 1
