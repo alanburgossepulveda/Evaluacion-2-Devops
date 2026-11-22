@@ -58,6 +58,13 @@ data:
             target_label: __address__
           - source_labels: [__meta_kubernetes_pod_name]
             target_label: pod
+      - job_name: pushgateway
+        honor_labels: true
+        static_configs:
+          - targets: ["pushgateway:9091"]
+---
+apiVersion: apps/v1
+kind: Deployment
 ---
 apiVersion: apps/v1
 kind: Deployment
