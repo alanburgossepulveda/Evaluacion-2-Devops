@@ -11,6 +11,32 @@ services:
       - app
     restart: unless-stopped
 
+  loki:
+    image: grafana/loki:3.5.0
+    volumes:
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - backend
+    restart: unless-stopped
+
+  alloy:
+    image: grafana/alloy:v1.10.0
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
+    volumes:
+      - ./monitoring/alloy-config.alloy:/etc/alloy/config.alloy:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - backend
+    depends_on:
+      - loki
+    restart: unless-stopped
+
   grafana:
     image: grafana/grafana:12.2.0
     environment:
@@ -26,7 +52,9 @@ services:
       - backend
     depends_on:
       - prometheus
+      - loki
     restart: unless-stopped
 
 volumes:
   grafana_data:
+  loki_data:
