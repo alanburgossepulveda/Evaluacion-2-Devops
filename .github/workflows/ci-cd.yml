@@ -83,13 +83,33 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # ---------------------------------------------------------------
+  # Escaneo de la imagen Docker con Trivy (bloquea ante críticas)
+  # ---------------------------------------------------------------
+  image-scan:
+    name: Escaneo de imagen (Trivy)
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Construir la imagen para analizarla
+        run: docker build -t order-manager:scan .
+      - name: Escaneo con Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: order-manager:scan
+          format: table
+          exit-code: "1"
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: CRITICAL
 
   # ---------------------------------------------------------------
   # 4) Construir la imagen Docker (se publica solo en push a main)
   # ---------------------------------------------------------------
   build:
     name: Imagen Docker
-    needs: [security, compliance]
+    needs: [security, compliance, image-scan]
     runs-on: ubuntu-latest
     permissions:
       contents: read
