@@ -67,11 +67,29 @@ jobs:
         run: echo "::error title=Seguridad::Snyk encontró vulnerabilidades de severidad alta o crítica. Construcción y despliegue bloqueados."
 
   # ---------------------------------------------------------------
-  # 3) Construir la imagen Docker (se publica solo en push a main)
+  # 3) Cumplimiento: auditoría de políticas y búsqueda de secretos
+  # ---------------------------------------------------------------
+  compliance:
+    name: Cumplimiento
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Auditoría de políticas
+        run: bash scripts/audit.sh
+      - name: Búsqueda de secretos con Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ---------------------------------------------------------------
+  # 4) Construir la imagen Docker (se publica solo en push a main)
   # ---------------------------------------------------------------
   build:
     name: Imagen Docker
-    needs: security
+    needs: [security, compliance]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -111,7 +129,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ---------------------------------------------------------------
-  # 4) Despliegue automático en entorno simulado (Docker Compose)
+  # 5) Despliegue automático en entorno simulado (Docker Compose)
   # ---------------------------------------------------------------
   deploy:
     name: Despliegue en staging
@@ -171,7 +189,7 @@ jobs:
         run: docker compose down -v
 
   # ---------------------------------------------------------------
-  # 5) Despliegue automático en Kubernetes (Amazon EKS)
+  # 6) Despliegue automático en Kubernetes (Amazon EKS)
   # ---------------------------------------------------------------
   deploy-eks:
     name: Despliegue en EKS
