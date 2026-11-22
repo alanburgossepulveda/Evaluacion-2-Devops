@@ -1,0 +1,11 @@
+title = "Configuración de Gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Identificadores públicos de SonarCloud (no son secretos)"
+regexTarget = "line"
+regexes = [
+  '''sonar\.(projectKey|organization)=''',
+]
