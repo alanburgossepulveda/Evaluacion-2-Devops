@@ -192,6 +192,10 @@ jobs:
           kubectl apply -f k8s/postgres-aws.yaml
           sed "s|image: order-manager:latest|image: ${IMAGE}|" k8s/app.yaml | kubectl apply -f -
           kubectl rollout status deployment/order-manager -n order-manager --timeout=300s
+          kubectl apply -f k8s/monitoring/prometheus.yaml
+          kubectl apply -f k8s/monitoring/grafana.yaml
+          kubectl rollout status deployment/prometheus -n monitoring --timeout=180s
+          kubectl rollout status deployment/grafana -n monitoring --timeout=180s
 
       - name: Resumen del despliegue
         if: always()
@@ -203,4 +207,6 @@ jobs:
             echo "- Ejecución: #${GITHUB_RUN_NUMBER}"
             echo
             kubectl get pods -n order-manager
+            echo
+            kubectl get pods -n monitoring
           } >> "$GITHUB_STEP_SUMMARY"
